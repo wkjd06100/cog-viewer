@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COG Raster Viewer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.0.0/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.0.0/dist/ol.js"></script>
+  <style>
+    body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    const cogSource = new ol.source.GeoTIFF({
+      sources: [{
+        // 실제 GCS 버킷 내 파일명으로 수정
+        url: 'https://storage.googleapis.com/researchins/GJS_DEM_Merge_202603.tif'
+      }]
+    });
+
+    const map = new ol.Map({
+      target: 'map',
+      layers: [
+        new ol.layer.Tile({
+          source: new ol.source.OSM()
+        }),
+        new ol.layer.WebGLTile({
+          source: cogSource
+        })
+      ],
+      view: cogSource.getView()
+    });
+  </script>
+</body>
+</html>
