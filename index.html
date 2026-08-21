@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>금정산 초정밀 음영기복도(Hillshade) 0.5m COG 뷰어</title>
   
-  <!-- OpenLayers 8.2 & Proj4js CDN -->
+  <!-- OpenLayers 8.2 공식 UMD 번들, CSS 및 Proj4js -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
 
   <style>
@@ -264,24 +265,15 @@
     <button class="btn-action" id="btn-reset-view">🎯 금정산 전체 영역 맞춤</button>
   </div>
 
-  <script type="module">
-    import Map from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/Map.js';
-    import View from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/View.js';
-    import TileLayer from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/layer/Tile.js';
-    import WebGLTileLayer from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/layer/WebGLTile.js';
-    import OSM from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/source/OSM.js';
-    import XYZ from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/source/XYZ.js';
-    import GeoTIFF from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/source/GeoTIFF.js';
-    import { register } from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/proj/proj4.js';
-
+  <script>
     // 1. EPSG:32652 (UTM zone 52N) 투영계 등록
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
-    register(proj4);
+    ol.proj.proj4.register(proj4);
 
     // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 연결
     const cogUrl = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
     
-    const cogSource = new GeoTIFF({
+    const cogSource = new ol.source.GeoTIFF({
       sources: [{
         url: cogUrl,
         nodata: -32768.0,
@@ -291,7 +283,7 @@
     });
 
     // 3. QGIS Singleband Gray 100% 매칭 셰이더 (Black to White 0.0 ~ 32765.0)
-    const hillshadeLayer = new WebGLTileLayer({
+    const hillshadeLayer = new ol.layer.WebGLTile({
       source: cogSource,
       opacity: 1.0,
       style: {
@@ -306,13 +298,13 @@
     });
 
     // 4. 배경 지도 레이어 정의
-    const osmLayer = new TileLayer({
-      source: new OSM(),
+    const osmLayer = new ol.layer.Tile({
+      source: new ol.source.OSM(),
       visible: false
     });
 
-    const satelliteLayer = new TileLayer({
-      source: new XYZ({
+    const satelliteLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         maxZoom: 19
       }),
@@ -320,14 +312,14 @@
     });
 
     // 5. 오픈레이어스 맵 인스턴스 초기화
-    const map = new Map({
+    const map = new ol.Map({
       target: 'map',
       layers: [
         osmLayer,
         satelliteLayer,
         hillshadeLayer
       ],
-      view: new View({
+      view: new ol.View({
         center: [14364000, 4197000],
         zoom: 12
       })
@@ -337,7 +329,7 @@
     let initialViewOptions = null;
     cogSource.getView().then(viewOptions => {
       initialViewOptions = viewOptions;
-      map.setView(new View(viewOptions));
+      map.setView(new ol.View(viewOptions));
       document.getElementById('loader').style.display = 'none';
       console.log('✅ QGIS 일치 COG 레이어 로드 완료:', viewOptions);
     }).catch(err => {
@@ -367,21 +359,18 @@
         const mode = btn.getAttribute('data-mode');
 
         if (mode === 'qgis') {
-          // 순수 QGIS 화면 모드: 배경 끄기, 지형 100% 불투명
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(false);
           hillshadeLayer.setOpacity(1.0);
           opacitySlider.value = 100;
           opacityVal.innerText = '100%';
         } else if (mode === 'satellite') {
-          // 위성지도 + 지형 입체 오버레이: 위성 켜기, 지형 70% 투명도
           satelliteLayer.setVisible(true);
           osmLayer.setVisible(false);
           hillshadeLayer.setOpacity(0.70);
           opacitySlider.value = 70;
           opacityVal.innerText = '70%';
         } else if (mode === 'osm') {
-          // 일반지도 + 지형 오버레이: OSM 켜기, 지형 60% 투명도
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(true);
           hillshadeLayer.setOpacity(0.60);
