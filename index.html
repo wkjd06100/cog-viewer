@@ -29,7 +29,7 @@
       height: 100%;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Pretendard", sans-serif;
-      background-color: #1a1a1a;
+      background-color: #111827;
       color: #1f2937;
     }
     #map {
@@ -271,15 +271,15 @@
     <input type="range" id="opacity-slider" min="0" max="100" value="100" />
 
     <!-- 전체 줌 리셋 버튼 -->
-    <button class="btn-action" id="btn-reset-view">🎯 금정산 전체 영역 맞춤</button>
+    <button class="btn-action" id="btn-reset-view">🎯 금정산 중심부 확대 맞춤</button>
   </div>
 
   <script>
-    // 1. EPSG:32652 (UTM zone 52N) 투영계 등록 (GPU 네이티브 파이프라인)
+    // 1. EPSG:32652 (UTM zone 52N) 투영계 등록 (GPU 네이티브 직결)
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
 
-    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의 (0.0~32765.0 명시적 정규화)
+    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의 (0~32765 정규화)
     const cogUrl = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
     
     const cogSource = new ol.source.GeoTIFF({
@@ -300,9 +300,9 @@
           'interpolate',
           ['linear'],
           ['band', 1],
-          0.00, [0, 0, 0, 1],         // QGIS Min (0.0): 깊은 그림자 (Black)
-          0.47, [145, 145, 150, 1],   // QGIS Median (15458): 중간톤 사면 (Gray)
-          1.00, [255, 255, 255, 1]    // QGIS Max (32765.0): 양지 능선 (White)
+          0.00, [0, 0, 0, 1],         // 깊은 그림자: 완전한 블랙
+          0.47, [145, 145, 150, 1],   // 중간 지형 사면: 내추럴 그레이
+          1.00, [255, 255, 255, 1]    // 밝은 능선/정상부: 선명한 화이트
         ]
       }
     });
@@ -332,12 +332,16 @@
       view: cogSource.getView()
     });
 
-    // 6. 비동기 뷰 로드 완료 처리
+    // 6. 비동기 뷰 로드 완료 처리 및 금정산 주능선 확대 포커싱
     let cachedViewOptions = null;
     cogSource.getView().then(viewOptions => {
       cachedViewOptions = viewOptions;
       document.getElementById('loader').style.display = 'none';
-      console.log('✅ 네이티브 UTM-52N 뷰 로드 완료:', viewOptions);
+      
+      // 광역 축소(Zoom 1) 대신 0.5m 고해상도 굴곡이 선명히 보이는 Zoom 3으로 포커스
+      map.getView().setCenter([503714.75, 3900021.25]);
+      map.getView().setZoom(3);
+      console.log('✅ 금정산 0.5m 고해상도 뷰 로드 완료 (Zoom: 3)');
     }).catch(err => {
       console.warn('GeoTIFF getView 로드 안내:', err);
       document.getElementById('loader').style.display = 'none';
@@ -392,9 +396,8 @@
 
     // (3) 전체 영역 맞춤 리셋
     document.getElementById('btn-reset-view').addEventListener('click', () => {
-      if (cachedViewOptions && cachedViewOptions.extent) {
-        map.getView().fit(cachedViewOptions.extent, { duration: 800 });
-      }
+      map.getView().setCenter([503714.75, 3900021.25]);
+      map.getView().setZoom(3);
     });
   </script>
 </body>
