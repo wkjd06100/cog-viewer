@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>금정산 초정밀 음영기복도(Hillshade) 0.5m COG 뷰어</title>
   
-  <!-- 1. GeoTIFF 전역 라이브러리 (OpenLayers 필수 종속성) -->
+  <!-- 1. GeoTIFF 전역 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
   
   <!-- 2. Proj4js 좌표계 정의 라이브러리 -->
@@ -275,23 +275,21 @@
   </div>
 
   <script>
-    // 1. EPSG:32652 (UTM zone 52N) 투영계 등록
+    // 1. EPSG:32652 (UTM zone 52N) 투영계 등록 (재투영 없는 네이티브 GPU 직결)
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
 
-    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의 (0~32765 스케일 정규화 매핑)
+    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의 (16-bit 원본 0~32765 유지)
     const cogUrl = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
     
     const cogSource = new ol.source.GeoTIFF({
       sources: [{
         url: cogUrl,
-        nodata: -32768.0,
-        min: 0,
-        max: 32765
+        nodata: -32768.0
       }]
     });
 
-    // 3. QGIS Singleband Gray 1:1 매칭 셰이더 (0: Black, 255: White)
+    // 3. QGIS Singleband Gray 1:1 정합 WebGL 셰이더 (0: Black ~ 32765: White)
     const hillshadeLayer = new ol.layer.WebGLTile({
       source: cogSource,
       opacity: 1.0,
@@ -300,8 +298,9 @@
           'interpolate',
           ['linear'],
           ['band', 1],
-          0,   [0, 0, 0, 1],         // QGIS Min (0.0): 완전한 그림자 (Black)
-          255, [255, 255, 255, 1]    // QGIS Max (32765.0): 완전한 양지 (White)
+          0,     [0, 0, 0, 1],         // QGIS Min (0.0): 완전한 그림자
+          15400, [150, 150, 150, 1],   // QGIS Median (15458): 중간톤 사면
+          32765, [255, 255, 255, 1]    // QGIS Max (32765.0): 밝은 능선
         ]
       }
     });
@@ -320,12 +319,7 @@
       visible: false
     });
 
-    // 금정산 영역 좌표 (EPSG:3857)
-    const geumjeongCenter = [14364000, 4197000];
-    const geumjeongExtent32652 = [498714.5, 3889521.0, 508715.0, 3910521.5];
-    const geumjeongExtent3857 = ol.proj.transformExtent(geumjeongExtent32652, 'EPSG:32652', 'EPSG:3857');
-
-    // 5. 오픈레이어스 맵 인스턴스 초기화 (즉시 렌더링 활성화)
+    // 5. 오픈레이어스 맵 인스턴스 초기화 (cogSource.getView()로 네이티브 UTM-52N 직결)
     const map = new ol.Map({
       target: 'map',
       layers: [
@@ -333,23 +327,18 @@
         satelliteLayer,
         hillshadeLayer
       ],
-      view: new ol.View({
-        center: geumjeongCenter,
-        zoom: 12
-      })
+      view: cogSource.getView() // CPU Canvas2D 재투영을 배제하고 GPU로 1:1 직결
     });
 
-    // 6. 비동기 래스터 메타데이터 로드 및 줌 맞춤
+    // 6. 비동기 뷰 로드 완료 처리
+    let cachedViewOptions = null;
     cogSource.getView().then(viewOptions => {
+      cachedViewOptions = viewOptions;
       document.getElementById('loader').style.display = 'none';
-      if (viewOptions && viewOptions.extent) {
-        const ext = ol.proj.transformExtent(viewOptions.extent, 'EPSG:32652', 'EPSG:3857');
-        map.getView().fit(ext, { padding: [20, 20, 20, 20], duration: 800 });
-      }
+      console.log('✅ 네이티브 UTM-52N 뷰 로드 완료:', viewOptions);
     }).catch(err => {
-      console.warn('GeoTIFF getView 비동기 안내:', err);
+      console.warn('GeoTIFF getView 로드 안내:', err);
       document.getElementById('loader').style.display = 'none';
-      map.getView().fit(geumjeongExtent3857, { padding: [20, 20, 20, 20], duration: 800 });
     });
 
     // 7. 무한 로딩 방지 안전 타이머 (2초 후 로더 자동 숨김)
@@ -401,7 +390,9 @@
 
     // (3) 전체 영역 맞춤 리셋
     document.getElementById('btn-reset-view').addEventListener('click', () => {
-      map.getView().fit(geumjeongExtent3857, { padding: [20, 20, 20, 20], duration: 800 });
+      if (cachedViewOptions && cachedViewOptions.extent) {
+        map.getView().fit(cachedViewOptions.extent, { duration: 800 });
+      }
     });
   </script>
 </body>
