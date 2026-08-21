@@ -3,27 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>부산 DEM COG 뷰어</title>
+  <title>부산 Hillshade COG 뷰어</title>
   <link rel="stylesheet" href="https://esm.sh/ol@8.2.0/ol.css">
-  <!-- 좌표 변환 라이브러리 proj4js -->
+  <!-- 좌표계 정의 라이브러리 (proj4js) 추가 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
   <style>
     body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; }
-    .legend {
-      position: absolute; bottom: 20px; right: 20px; z-index: 1000;
-      background: rgba(255, 255, 255, 0.9); padding: 12px; border-radius: 8px;
-      font-family: sans-serif; font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    #loader {
+      position: absolute; top: 10px; left: 10px; z-index: 1000;
+      background: white; padding: 10px; border-radius: 4px; border: 1px solid #ccc;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="legend">
-    <b>⛰️ DEM 표고</b><br/>
-    <span style="color: #2c7bb6;">■</span> 해수면 / 저지대 (0m)<br/>
-    <span style="color: #ffffbf;">■</span> 구릉지 (~200m)<br/>
-    <span style="color: #d7191c;">■</span> 산악지 (~500m+)
-  </div>
+  <div id="loader">데이터 위치로 이동 중...</div>
 
   <script type="module">
     import Map from 'https://esm.sh/ol@8.2.0/Map';
@@ -34,33 +28,32 @@
     import GeoTIFF from 'https://esm.sh/ol@8.2.0/source/GeoTIFF';
     import { register } from 'https://esm.sh/ol@8.2.0/proj/proj4';
 
-    // 1. EPSG:32652 (WGS 84 / UTM zone 52N) 정의 등록
+    // 1. [좌표계 해결] EPSG:32652 (UTM zone 52N) 명시적 정의 등록
+    // 이 정의가 없으면 브라우저가 데이터의 위치를 찾지 못합니다.
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     register(proj4);
 
-    // 2. COG 소스 설정 (DEM 파일 연결)
+    // 2. COG 소스 설정 (Hillshade 파일)
     const cogSource = new GeoTIFF({
       sources: [{
         url: 'https://storage.googleapis.com/researchins/GJS_DEM_Merge_202603_cog.tif',
-        nodata: -9999 // nodata 영역 투명화
+        nodata: -9999
       }]
     });
 
-    // 3. 단일 밴드 DEM 표고 색상(Color Map) 셰이더 스타일
-    const demLayer = new WebGLTileLayer({
+    // 3. [심볼 해결] Hillshade 데이터 0 ~ 32765 흑백 시각화 스타일
+    const hillshadeLayer = new WebGLTileLayer({
       source: cogSource,
       style: {
         color: [
           'interpolate',
           ['linear'],
           ['band', 1],
-          0,   [44, 123, 182, 0.8],   // 0m (파랑)
-          50,  [171, 217, 233, 0.8],  // 50m (연하늘)
-          150, [255, 255, 191, 0.8],  // 150m (노랑)
-          300, [253, 174, 97, 0.8],   // 300m (주황)
-          600, [215, 25, 28, 0.8]     // 600m+ (빨강)
+          0,     [0, 0, 0, 1],       // 0 (가장 어두운 곳: 검은색)
+          32765, [255, 255, 255, 1]  // 32765 (가장 밝은 곳: 흰색)
         ]
-      }
+      },
+      opacity: 0.9 // 배경 지도와 함께 보기 위해 약간 투명하게 설정
     });
 
     // 4. 지도 생성
@@ -70,19 +63,24 @@
         new TileLayer({
           source: new OSM() // 배경 지도 (OpenStreetMap)
         }),
-        demLayer
+        hillshadeLayer
       ],
+      // 기본 뷰는 데이터 로딩 전까지 전세계 지도를 보여줍니다.
       view: new View({
-        center: [14366000, 4170000], // 기본 위치: 부산
-        zoom: 11
+        center: [0, 0],
+        zoom: 2
       })
     });
 
-    // 메타데이터 기반으로 데이터 위치로 자동 확대/이동
+    // 5. [자동 이동] 데이터 메타데이터를 파싱하여 부산 실제 영역으로 이동
     cogSource.getView().then(viewOptions => {
+      // viewOptions에는 EPSG:32652 기반의 영역과 투영 정보가 담겨 있습니다.
       map.setView(new View(viewOptions));
+      document.getElementById('loader').style.display = 'none';
+      console.log("데이터 로드 및 위치 이동 완료");
     }).catch(err => {
       console.error("COG 로딩 오류:", err);
+      document.getElementById('loader').innerText = "로딩 오류!";
     });
   </script>
 </body>
