@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>금정산 초정밀 음영기복도(Hillshade) 0.5m COG 뷰어</title>
   
-  <!-- OpenLayers 8.2 공식 UMD 번들, CSS 및 Proj4js -->
+  <!-- OpenLayers 8.2 공식 UMD 번들, CSS 및 Proj4js (모듈 해석 오류 원천 차단) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
   <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
@@ -359,18 +359,21 @@
         const mode = btn.getAttribute('data-mode');
 
         if (mode === 'qgis') {
+          // 순수 QGIS 화면 모드: 배경 끄기, 지형 100% 불투명
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(false);
           hillshadeLayer.setOpacity(1.0);
           opacitySlider.value = 100;
           opacityVal.innerText = '100%';
         } else if (mode === 'satellite') {
+          // 위성지도 + 지형 입체 오버레이: 위성 켜기, 지형 70% 투명도
           satelliteLayer.setVisible(true);
           osmLayer.setVisible(false);
           hillshadeLayer.setOpacity(0.70);
           opacitySlider.value = 70;
           opacityVal.innerText = '70%';
         } else if (mode === 'osm') {
+          // 일반지도 + 지형 오버레이: OSM 켜기, 지형 60% 투명도
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(true);
           hillshadeLayer.setOpacity(0.60);
