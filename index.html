@@ -3,14 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>COG Raster Viewer</title>
+  <title>부산 DEM COG 뷰어</title>
   <link rel="stylesheet" href="https://esm.sh/ol@8.2.0/ol.css">
+  <!-- 좌표 변환 라이브러리 proj4js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
   <style>
     body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; }
+    .legend {
+      position: absolute; bottom: 20px; right: 20px; z-index: 1000;
+      background: rgba(255, 255, 255, 0.9); padding: 12px; border-radius: 8px;
+      font-family: sans-serif; font-size: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div class="legend">
+    <b>⛰️ DEM 표고</b><br/>
+    <span style="color: #2c7bb6;">■</span> 해수면 / 저지대 (0m)<br/>
+    <span style="color: #ffffbf;">■</span> 구릉지 (~200m)<br/>
+    <span style="color: #d7191c;">■</span> 산악지 (~500m+)
+  </div>
 
   <script type="module">
     import Map from 'https://esm.sh/ol@8.2.0/Map';
@@ -19,34 +32,57 @@
     import WebGLTileLayer from 'https://esm.sh/ol@8.2.0/layer/WebGLTile';
     import OSM from 'https://esm.sh/ol@8.2.0/source/OSM';
     import GeoTIFF from 'https://esm.sh/ol@8.2.0/source/GeoTIFF';
+    import { register } from 'https://esm.sh/ol@8.2.0/proj/proj4';
 
+    // 1. EPSG:32652 (WGS 84 / UTM zone 52N) 정의 등록
+    proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
+    register(proj4);
+
+    // 2. COG 소스 설정 (DEM 파일 연결)
     const cogSource = new GeoTIFF({
       sources: [{
-        // 실제 GCS 버킷 내 파일명으로 수정
-        url: 'https://storage.googleapis.com/researchins/GJS_DEM_Merge_202603_cog.tif'
+        url: 'https://storage.googleapis.com/researchins/GJS_DEM_Merge_202603_cog.tif',
+        nodata: -9999 // nodata 영역 투명화
       }]
     });
 
+    // 3. 단일 밴드 DEM 표고 색상(Color Map) 셰이더 스타일
+    const demLayer = new WebGLTileLayer({
+      source: cogSource,
+      style: {
+        color: [
+          'interpolate',
+          ['linear'],
+          ['band', 1],
+          0,   [44, 123, 182, 0.8],   // 0m (파랑)
+          50,  [171, 217, 233, 0.8],  // 50m (연하늘)
+          150, [255, 255, 191, 0.8],  // 150m (노랑)
+          300, [253, 174, 97, 0.8],   // 300m (주황)
+          600, [215, 25, 28, 0.8]     // 600m+ (빨강)
+        ]
+      }
+    });
+
+    // 4. 지도 생성
     const map = new Map({
       target: 'map',
       layers: [
         new TileLayer({
-          source: new OSM()
+          source: new OSM() // 배경 지도 (OpenStreetMap)
         }),
-        new WebGLTileLayer({
-          source: cogSource
-        })
+        demLayer
       ],
       view: new View({
-        center: [0, 0],
-        zoom: 2
+        center: [14366000, 4170000], // 기본 위치: 부산
+        zoom: 11
       })
     });
 
+    // 메타데이터 기반으로 데이터 위치로 자동 확대/이동
     cogSource.getView().then(viewOptions => {
       map.setView(new View(viewOptions));
     }).catch(err => {
-      console.error("COG 로딩 에러:", err);
+      console.error("COG 로딩 오류:", err);
     });
   </script>
 </body>
