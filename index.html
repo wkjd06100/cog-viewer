@@ -2,85 +2,404 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>부산 Hillshade COG 뷰어</title>
-  <link rel="stylesheet" href="https://esm.sh/ol@8.2.0/ol.css">
-  <!-- 좌표계 정의 라이브러리 (proj4js) 추가 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>금정산 초정밀 음영기복도(Hillshade) 0.5m COG 뷰어</title>
+  
+  <!-- OpenLayers 8.2 & Proj4js CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+
   <style>
-    body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Pretendard", sans-serif;
+      background-color: #111827;
+      color: #1f2937;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* 플로팅 컨트롤 패널 */
+    .control-panel {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 16px 18px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      max-width: 360px;
+      width: calc(100vw - 28px);
+      transition: all 0.3s ease;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .panel-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      background: #0284c7;
+      color: #ffffff;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .panel-sub {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .section-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 10px 0;
+    }
+
+    /* 프리셋 모드 선택 버튼 */
+    .preset-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .preset-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .btn-preset {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      padding: 7px 4px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .btn-preset.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+    }
+
+    /* 슬라이더 컨트롤 */
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .slider-val {
+      color: #0284c7;
+      font-weight: 800;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #e2e8f0;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #0284c7;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+    }
+
+    /* 하단 액션 버튼 */
+    .btn-action {
+      width: 100%;
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 9px 0;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-action:hover {
+      background: #0369a1;
+    }
+
+    /* 로딩 인디케이터 */
     #loader {
-      position: absolute; top: 10px; left: 10px; z-index: 1000;
-      background: white; padding: 10px; border-radius: 4px; border: 1px solid #ccc;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2000;
+      background: rgba(15, 23, 42, 0.92);
+      color: #ffffff;
+      padding: 18px 26px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.15);
+      pointer-events: none;
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3.5px solid rgba(255,255,255,0.25);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 모바일 레이아웃 대응 */
+    @media (max-width: 480px) {
+      .control-panel {
+        top: auto;
+        bottom: 14px;
+        left: 14px;
+        width: calc(100vw - 28px);
+        max-width: none;
+        padding: 14px 16px;
+      }
     }
   </style>
 </head>
 <body>
+
+  <!-- 지도 캔버스 -->
   <div id="map"></div>
-  <div id="loader">데이터 위치로 이동 중...</div>
+
+  <!-- 로딩 스피너 -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <div id="loader-text">QGIS 정밀 지형 데이터 스트리밍 중...</div>
+  </div>
+
+  <!-- 컨트롤 대시보드 -->
+  <div class="control-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span>🏔️ 금정산 음영기복도</span>
+      </div>
+      <span class="badge">0.5m COG</span>
+    </div>
+    <div class="panel-sub">
+      QGIS Singleband Gray 1:1 정합 심볼로지<br/>
+      좌표계: UTM-52N (EPSG:32652) · 16-bit GeoTIFF
+    </div>
+
+    <div class="section-divider"></div>
+
+    <!-- 뷰어 모드 프리셋 -->
+    <div class="preset-label">
+      <span>🎨 시각화 모드 프리셋</span>
+    </div>
+    <div class="preset-group">
+      <button class="btn-preset active" data-mode="qgis">QGIS 지형</button>
+      <button class="btn-preset" data-mode="satellite">위성 입체</button>
+      <button class="btn-preset" data-mode="osm">일반지도</button>
+    </div>
+
+    <!-- 음영기복도 투명도 조절 -->
+    <div class="slider-header">
+      <span>지형 음영 투명도</span>
+      <span id="opacity-val" class="slider-val">100%</span>
+    </div>
+    <input type="range" id="opacity-slider" min="0" max="100" value="100" />
+
+    <!-- 전체 줌 리셋 버튼 -->
+    <button class="btn-action" id="btn-reset-view">🎯 금정산 전체 영역 맞춤</button>
+  </div>
 
   <script type="module">
-    import Map from 'https://esm.sh/ol@8.2.0/Map';
-    import View from 'https://esm.sh/ol@8.2.0/View';
-    import TileLayer from 'https://esm.sh/ol@8.2.0/layer/Tile';
-    import WebGLTileLayer from 'https://esm.sh/ol@8.2.0/layer/WebGLTile';
-    import OSM from 'https://esm.sh/ol@8.2.0/source/OSM';
-    import GeoTIFF from 'https://esm.sh/ol@8.2.0/source/GeoTIFF';
-    import { register } from 'https://esm.sh/ol@8.2.0/proj/proj4';
+    import Map from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/Map.js';
+    import View from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/View.js';
+    import TileLayer from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/layer/Tile.js';
+    import WebGLTileLayer from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/layer/WebGLTile.js';
+    import OSM from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/source/OSM.js';
+    import XYZ from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/source/XYZ.js';
+    import GeoTIFF from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/source/GeoTIFF.js';
+    import { register } from 'https://cdn.jsdelivr.net/npm/ol@v8.2.0/proj/proj4.js';
 
-    // 1. [좌표계 해결] EPSG:32652 (UTM zone 52N) 명시적 정의 등록
-    // 이 정의가 없으면 브라우저가 데이터의 위치를 찾지 못합니다.
+    // 1. EPSG:32652 (UTM zone 52N) 투영계 등록
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     register(proj4);
 
-    // 2. COG 소스 설정 (Hillshade 파일)
+    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 연결
+    const cogUrl = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
+    
     const cogSource = new GeoTIFF({
       sources: [{
-        url: 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif',
-        nodata: -9999
-      }]
+        url: cogUrl,
+        nodata: -32768.0,
+        bands: [1]
+      }],
+      normalize: false // QGIS와 동일한 16-bit(0~32765) 픽셀값 직접 연산
     });
 
-    // 3. [심볼 해결] Hillshade 데이터 0 ~ 32765 흑백 시각화 스타일
+    // 3. QGIS Singleband Gray 100% 매칭 셰이더 (Black to White 0.0 ~ 32765.0)
     const hillshadeLayer = new WebGLTileLayer({
       source: cogSource,
+      opacity: 1.0,
       style: {
         color: [
           'interpolate',
           ['linear'],
           ['band', 1],
-          0,     [0, 0, 0, 1],       // 0 (가장 어두운 곳: 검은색)
-          32765, [255, 255, 255, 1]  // 32765 (가장 밝은 곳: 흰색)
+          0,     [0, 0, 0, 1],         // QGIS Min (0): 완전한 그림자(Black)
+          32765, [255, 255, 255, 1]    // QGIS Max (32765): 완전한 양지(White)
         ]
-      },
-      opacity: 0.9 // 배경 지도와 함께 보기 위해 약간 투명하게 설정
+      }
     });
 
-    // 4. 지도 생성
+    // 4. 배경 지도 레이어 정의
+    const osmLayer = new TileLayer({
+      source: new OSM(),
+      visible: false
+    });
+
+    const satelliteLayer = new TileLayer({
+      source: new XYZ({
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        maxZoom: 19
+      }),
+      visible: false
+    });
+
+    // 5. 오픈레이어스 맵 인스턴스 초기화
     const map = new Map({
       target: 'map',
       layers: [
-        new TileLayer({
-          source: new OSM() // 배경 지도 (OpenStreetMap)
-        }),
+        osmLayer,
+        satelliteLayer,
         hillshadeLayer
       ],
-      // 기본 뷰는 데이터 로딩 전까지 전세계 지도를 보여줍니다.
       view: new View({
-        center: [0, 0],
-        zoom: 2
+        center: [14364000, 4197000],
+        zoom: 12
       })
     });
 
-    // 5. [자동 이동] 데이터 메타데이터를 파싱하여 부산 실제 영역으로 이동
+    // 6. 래스터 메타데이터 기반 자동 줌 & 뷰 옵션 저장
+    let initialViewOptions = null;
     cogSource.getView().then(viewOptions => {
-      // viewOptions에는 EPSG:32652 기반의 영역과 투영 정보가 담겨 있습니다.
+      initialViewOptions = viewOptions;
       map.setView(new View(viewOptions));
       document.getElementById('loader').style.display = 'none';
-      console.log("데이터 로드 및 위치 이동 완료");
+      console.log('✅ QGIS 일치 COG 레이어 로드 완료:', viewOptions);
     }).catch(err => {
-      console.error("COG 로딩 오류:", err);
-      document.getElementById('loader').innerText = "로딩 오류!";
+      console.error('❌ COG 로드 오류:', err);
+      const loaderText = document.getElementById('loader-text');
+      loaderText.innerText = '지형 데이터 로드 실패 (CORS 및 네트워크 확인 필요)';
+      loaderText.style.color = '#f87171';
+    });
+
+    // 7. 인터랙티브 이벤트 제어
+    const opacitySlider = document.getElementById('opacity-slider');
+    const opacityVal = document.getElementById('opacity-val');
+
+    // (1) 투명도 슬라이더 연동
+    opacitySlider.addEventListener('input', (e) => {
+      const val = e.target.value;
+      opacityVal.innerText = `${val}%`;
+      hillshadeLayer.setOpacity(val / 100);
+    });
+
+    // (2) 프리셋 모드 전환 (QGIS 지형 / 위성 입체 / 일반지도)
+    const presetBtns = document.querySelectorAll('.btn-preset');
+    presetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        presetBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.getAttribute('data-mode');
+
+        if (mode === 'qgis') {
+          // 순수 QGIS 화면 모드: 배경 끄기, 지형 100% 불투명
+          satelliteLayer.setVisible(false);
+          osmLayer.setVisible(false);
+          hillshadeLayer.setOpacity(1.0);
+          opacitySlider.value = 100;
+          opacityVal.innerText = '100%';
+        } else if (mode === 'satellite') {
+          // 위성지도 + 지형 입체 오버레이: 위성 켜기, 지형 70% 투명도
+          satelliteLayer.setVisible(true);
+          osmLayer.setVisible(false);
+          hillshadeLayer.setOpacity(0.70);
+          opacitySlider.value = 70;
+          opacityVal.innerText = '70%';
+        } else if (mode === 'osm') {
+          // 일반지도 + 지형 오버레이: OSM 켜기, 지형 60% 투명도
+          satelliteLayer.setVisible(false);
+          osmLayer.setVisible(true);
+          hillshadeLayer.setOpacity(0.60);
+          opacitySlider.value = 60;
+          opacityVal.innerText = '60%';
+        }
+      });
+    });
+
+    // (3) 전체 영역 맞춤 리셋
+    document.getElementById('btn-reset-view').addEventListener('click', () => {
+      if (initialViewOptions) {
+        map.getView().animate({
+          center: initialViewOptions.center,
+          resolution: initialViewOptions.resolution,
+          duration: 800
+        });
+      }
     });
   </script>
 </body>
