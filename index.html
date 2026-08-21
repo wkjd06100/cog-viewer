@@ -197,15 +197,15 @@
       flex-direction: column;
       align-items: center;
       gap: 12px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       pointer-events: none;
       transition: opacity 0.4s ease;
     }
     .spinner {
       width: 32px;
       height: 32px;
-      border: 3.5px solid rgba(255,255,255,0.25);
+      border: 3.5px solid rgba(255, 255, 255, 0.25);
       border-top-color: #38bdf8;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -247,7 +247,7 @@
       <span class="badge">0.5m COG</span>
     </div>
     <div class="panel-sub">
-      QGIS Singleband Gray 1:1 고대비 정합 심볼로지<br/>
+      QGIS Singleband Gray 1:1 정합 심볼로지<br/>
       좌표계: UTM-52N (EPSG:32652) · 16-bit GeoTIFF
     </div>
 
@@ -279,7 +279,7 @@
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
 
-    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의 (16-bit 원본 유지)
+    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의
     const cogUrl = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
     
     const cogSource = new ol.source.GeoTIFF({
@@ -289,9 +289,8 @@
       }]
     });
 
-    // 3. QGIS 캔버스 1:1 일치 고대비(High-Contrast) 음영 셰이더
-    // 백분위 통계: 10% ~1300, 30% ~9700, 50% ~15700, 70% ~20500, 95% ~28200
-    // 가파른 사면과 깊은 계곡, 햇빛 능선의 입체감을 QGIS와 동일하게 극대화
+    // 3. OpenLayers 8.2 WebGLTileLayer 셰이더 (0.0~1.0 정규화 스케일 매핑)
+    // 0.00: NoData 투명, 0.04: 깊은 그림자(Black), 0.48: 중간톤(Gray), 0.88+: 양지 능선(White)
     const hillshadeLayer = new ol.layer.WebGLTile({
       source: cogSource,
       opacity: 1.0,
@@ -300,17 +299,17 @@
           'interpolate',
           ['linear'],
           ['band', 1],
-          0,     [0, 0, 0, 0],         // NoData / 외곽 경계: 완전 투명
-          100,   [0, 0, 0, 1],         // 깊은 그림자: 완전한 블랙
-          5000,  [35, 35, 35, 1],      // 음영 사면
-          15700, [138, 138, 142, 1],   // 중간톤 지형 사면
-          24000, [215, 215, 220, 1],   // 밝은 사면
-          29000, [255, 255, 255, 1]    // 햇빛 능선/정상부: 완전한 화이트
+          0.00, [0, 0, 0, 0],         // 외곽 배경 / NoData: 완전 투명
+          0.04, [0, 0, 0, 1],         // 깊은 그림자/계곡: 완전한 블랙
+          0.20, [40, 40, 40, 1],      // 음영 사면
+          0.48, [140, 140, 145, 1],   // 중간톤 지형 사면 (QGIS 중간값)
+          0.75, [215, 215, 220, 1],   // 밝은 사면
+          0.88, [255, 255, 255, 1]    // 햇빛 능선/정상부: 완전한 화이트
         ]
       }
     });
 
-    // 4. 배경 지도 레이어 정의 (초기 상태는 QGIS 순수 지형 모드를 위해 숨김)
+    // 4. 배경 지도 레이어 정의 (초기 QGIS 순수 지형 모드에서는 숨김)
     const osmLayer = new ol.layer.Tile({
       source: new ol.source.OSM(),
       visible: false
@@ -335,7 +334,7 @@
       view: cogSource.getView()
     });
 
-    // 6. 비동기 뷰 로드 완료 처리 및 영역 맞춤
+    // 6. 비동기 뷰 로드 완료 처리
     let cachedViewOptions = null;
     cogSource.getView().then(viewOptions => {
       cachedViewOptions = viewOptions;
@@ -372,21 +371,18 @@
         const mode = btn.getAttribute('data-mode');
 
         if (mode === 'qgis') {
-          // QGIS 지형 모드: 배경 끄기, 지형 100% 불투명 (QGIS 캔버스 동일)
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(false);
           hillshadeLayer.setOpacity(1.0);
           opacitySlider.value = 100;
           opacityVal.innerText = '100%';
         } else if (mode === 'satellite') {
-          // 위성 입체 모드: 위성 켜기, 지형 70% 투명도
           satelliteLayer.setVisible(true);
           osmLayer.setVisible(false);
           hillshadeLayer.setOpacity(0.70);
           opacitySlider.value = 70;
           opacityVal.innerText = '70%';
         } else if (mode === 'osm') {
-          // 일반지도 모드: OSM 켜기, 지형 60% 투명도
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(true);
           hillshadeLayer.setOpacity(0.60);
