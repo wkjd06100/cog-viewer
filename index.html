@@ -155,7 +155,7 @@
       border-radius: 50%;
       background: #0284c7;
       cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
     }
 
     /* 하단 액션 버튼 */
@@ -275,22 +275,23 @@
   </div>
 
   <script>
-    // 1. EPSG:32652 (UTM zone 52N) 투영계 등록 (재투영 없는 네이티브 GPU 직결)
+    // 1. EPSG:32652 (UTM zone 52N) 투영계 등록 (GPU 네이티브 파이프라인)
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
 
-    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의
+    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의 (0.0~32765.0 명시적 정규화)
     const cogUrl = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
     
     const cogSource = new ol.source.GeoTIFF({
       sources: [{
         url: cogUrl,
-        nodata: -32768.0
+        nodata: -32768.0,
+        min: 0.0,
+        max: 32765.0
       }]
     });
 
-    // 3. OpenLayers 8.2 WebGLTileLayer 셰이더 (0.0~1.0 정규화 스케일 매핑)
-    // 0.00: NoData 투명, 0.04: 깊은 그림자(Black), 0.48: 중간톤(Gray), 0.88+: 양지 능선(White)
+    // 3. QGIS Singleband Gray 1:1 일치 셰이더 (0.0: Black ~ 0.47: Gray ~ 1.0: White)
     const hillshadeLayer = new ol.layer.WebGLTile({
       source: cogSource,
       opacity: 1.0,
@@ -299,17 +300,14 @@
           'interpolate',
           ['linear'],
           ['band', 1],
-          0.00, [0, 0, 0, 0],         // 외곽 배경 / NoData: 완전 투명
-          0.04, [0, 0, 0, 1],         // 깊은 그림자/계곡: 완전한 블랙
-          0.20, [40, 40, 40, 1],      // 음영 사면
-          0.48, [140, 140, 145, 1],   // 중간톤 지형 사면 (QGIS 중간값)
-          0.75, [215, 215, 220, 1],   // 밝은 사면
-          0.88, [255, 255, 255, 1]    // 햇빛 능선/정상부: 완전한 화이트
+          0.00, [0, 0, 0, 1],         // QGIS Min (0.0): 깊은 그림자 (Black)
+          0.47, [145, 145, 150, 1],   // QGIS Median (15458): 중간톤 사면 (Gray)
+          1.00, [255, 255, 255, 1]    // QGIS Max (32765.0): 양지 능선 (White)
         ]
       }
     });
 
-    // 4. 배경 지도 레이어 정의 (초기 QGIS 순수 지형 모드에서는 숨김)
+    // 4. 배경 지도 레이어 정의 (초기 QGIS 지형 모드: 모두 비활성화)
     const osmLayer = new ol.layer.Tile({
       source: new ol.source.OSM(),
       visible: false
