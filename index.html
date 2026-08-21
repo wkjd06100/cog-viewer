@@ -49,37 +49,88 @@
       z-index: 1000;
       background: rgba(255, 255, 255, 0.96);
       backdrop-filter: blur(12px);
-      padding: 16px 18px;
+      padding: 14px 16px;
       border-radius: 14px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
       border: 1px solid rgba(255, 255, 255, 0.9);
-      max-width: 360px;
+      max-width: 350px;
       width: calc(100vw - 28px);
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 4px;
+      cursor: pointer;
+      user-select: none;
     }
-    .panel-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: #0f172a;
+    .panel-title-wrap {
       display: flex;
       align-items: center;
       gap: 6px;
     }
+    .panel-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #0f172a;
+    }
     .badge {
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 700;
       background: #0284c7;
       color: #ffffff;
-      padding: 2px 8px;
-      border-radius: 12px;
+      padding: 2px 7px;
+      border-radius: 10px;
     }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-toggle {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 11px;
+      color: #475569;
+      transition: all 0.2s ease;
+    }
+    .btn-toggle:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    /* 패널 바디 (접기/펼치기 애니메이션) */
+    .panel-body {
+      max-height: 500px;
+      opacity: 1;
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .control-panel.collapsed .panel-body {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+      pointer-events: none;
+    }
+
+    .control-panel.collapsed .btn-toggle {
+      transform: rotate(180deg);
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
     .panel-sub {
       font-size: 11px;
       color: #64748b;
@@ -217,12 +268,11 @@
     /* 모바일 레이아웃 대응 */
     @media (max-width: 480px) {
       .control-panel {
-        top: auto;
-        bottom: 14px;
-        left: 14px;
-        width: calc(100vw - 28px);
+        top: 10px;
+        left: 10px;
+        width: calc(100vw - 20px);
         max-width: none;
-        padding: 14px 16px;
+        padding: 12px 14px;
       }
     }
   </style>
@@ -238,40 +288,48 @@
     <div id="loader-text">지형 데이터 스트리밍 연결 중...</div>
   </div>
 
-  <!-- 컨트롤 대시보드 -->
-  <div class="control-panel">
-    <div class="panel-header">
-      <div class="panel-title">
-        <span>🏔️ 금정산 음영기복도</span>
+  <!-- 접이식 컨트롤 대시보드 -->
+  <div class="control-panel" id="control-panel">
+    <!-- 헤더 (클릭 시 접기/펼치기 토글) -->
+    <div class="panel-header" id="panel-toggle-header" title="메뉴 접기/펼치기">
+      <div class="panel-title-wrap">
+        <span class="panel-title">🏔️ 금정산 음영기복도</span>
+        <span class="badge">0.5m COG</span>
       </div>
-      <span class="badge">0.5m COG</span>
-    </div>
-    <div class="panel-sub">
-      QGIS Singleband Gray 1:1 정합 심볼로지<br/>
-      좌표계: UTM-52N (EPSG:32652) · 16-bit GeoTIFF
+      <div class="header-actions">
+        <button class="btn-toggle" id="btn-toggle" aria-label="메뉴 접기">▲</button>
+      </div>
     </div>
 
-    <div class="section-divider"></div>
+    <!-- 접히는 바디 영역 -->
+    <div class="panel-body">
+      <div class="panel-sub">
+        QGIS Singleband Gray 1:1 정합 심볼로지<br/>
+        좌표계: UTM-52N (EPSG:32652) · 16-bit GeoTIFF
+      </div>
 
-    <!-- 뷰어 모드 프리셋 -->
-    <div class="preset-label">
-      <span>🎨 시각화 모드 프리셋</span>
-    </div>
-    <div class="preset-group">
-      <button class="btn-preset active" data-mode="qgis">QGIS 지형</button>
-      <button class="btn-preset" data-mode="satellite">위성 입체</button>
-      <button class="btn-preset" data-mode="osm">일반지도</button>
-    </div>
+      <div class="section-divider"></div>
 
-    <!-- 음영기복도 투명도 조절 -->
-    <div class="slider-header">
-      <span>지형 음영 투명도</span>
-      <span id="opacity-val" class="slider-val">100%</span>
-    </div>
-    <input type="range" id="opacity-slider" min="0" max="100" value="100" />
+      <!-- 뷰어 모드 프리셋 -->
+      <div class="preset-label">
+        <span>🎨 시각화 모드 프리셋</span>
+      </div>
+      <div class="preset-group">
+        <button class="btn-preset active" data-mode="qgis">QGIS 지형</button>
+        <button class="btn-preset" data-mode="satellite">위성 입체</button>
+        <button class="btn-preset" data-mode="osm">일반지도</button>
+      </div>
 
-    <!-- 전체 줌 리셋 버튼 -->
-    <button class="btn-action" id="btn-reset-view">🎯 금정산 중심부 확대 맞춤</button>
+      <!-- 음영기복도 투명도 조절 -->
+      <div class="slider-header">
+        <span>지형 음영 투명도</span>
+        <span id="opacity-val" class="slider-val">100%</span>
+      </div>
+      <input type="range" id="opacity-slider" min="0" max="100" value="100" />
+
+      <!-- 전체 줌 리셋 버튼 -->
+      <button class="btn-action" id="btn-reset-view">🎯 금정산 중심부 맞춤</button>
+    </div>
   </div>
 
   <script>
@@ -321,7 +379,7 @@
       visible: false
     });
 
-    // 5. 오픈레이어스 맵 인스턴스 초기화 (cogSource.getView()로 네이티브 UTM-52N 직결)
+    // 5. 오픈레이어스 맵 인스턴스 초기화
     const map = new ol.Map({
       target: 'map',
       layers: [
@@ -332,16 +390,20 @@
       view: cogSource.getView()
     });
 
-    // 6. 비동기 뷰 로드 완료 처리 및 금정산 주능선 확대 포커싱
-    let cachedViewOptions = null;
+    // 6. 비동기 뷰 로드 시 디지털 초정밀 확대(maxZoom: 10) 적용
+    let initialCenter = [503714.75, 3900021.25];
     cogSource.getView().then(viewOptions => {
-      cachedViewOptions = viewOptions;
+      map.setView(new ol.View({
+        ...viewOptions,
+        maxZoom: 10,           // 최대 줌 10단계까지 무제한 초근접 확대 허용
+        minResolution: 0.03,   // 3cm급 해상도까지 세밀한 픽셀 확대 지원
+        smoothExtentConstraint: true
+      }));
+
+      map.getView().setCenter(initialCenter);
+      map.getView().setZoom(4);
       document.getElementById('loader').style.display = 'none';
-      
-      // 광역 축소(Zoom 1) 대신 0.5m 고해상도 굴곡이 선명히 보이는 Zoom 3으로 포커스
-      map.getView().setCenter([503714.75, 3900021.25]);
-      map.getView().setZoom(3);
-      console.log('✅ 금정산 0.5m 고해상도 뷰 로드 완료 (Zoom: 3)');
+      console.log('✅ 초정밀 무제한 줌(MaxZoom: 10) 뷰어 활성화 완료');
     }).catch(err => {
       console.warn('GeoTIFF getView 로드 안내:', err);
       document.getElementById('loader').style.display = 'none';
@@ -353,7 +415,21 @@
       if (loader) loader.style.display = 'none';
     }, 2000);
 
-    // 8. 인터랙티브 이벤트 제어
+    // 8. 인터랙티브 메뉴 접기/펼치기 제어
+    const controlPanel = document.getElementById('control-panel');
+    const toggleHeader = document.getElementById('panel-toggle-header');
+    const btnToggle = document.getElementById('btn-toggle');
+
+    function toggleMenu(e) {
+      controlPanel.classList.toggle('collapsed');
+      const isCollapsed = controlPanel.classList.contains('collapsed');
+      btnToggle.innerText = isCollapsed ? '▼' : '▲';
+      btnToggle.setAttribute('aria-label', isCollapsed ? '메뉴 펼치기' : '메뉴 접기');
+    }
+
+    toggleHeader.addEventListener('click', toggleMenu);
+
+    // 9. 인터랙티브 이벤트 제어
     const opacitySlider = document.getElementById('opacity-slider');
     const opacityVal = document.getElementById('opacity-val');
 
@@ -367,7 +443,8 @@
     // (2) 프리셋 모드 전환 (QGIS 지형 / 위성 입체 / 일반지도)
     const presetBtns = document.querySelectorAll('.btn-preset');
     presetBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 메뉴 토글 방지
         presetBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const mode = btn.getAttribute('data-mode');
@@ -395,9 +472,10 @@
     });
 
     // (3) 전체 영역 맞춤 리셋
-    document.getElementById('btn-reset-view').addEventListener('click', () => {
-      map.getView().setCenter([503714.75, 3900021.25]);
-      map.getView().setZoom(3);
+    document.getElementById('btn-reset-view').addEventListener('click', (e) => {
+      e.stopPropagation();
+      map.getView().setCenter(initialCenter);
+      map.getView().setZoom(4);
     });
   </script>
 </body>
