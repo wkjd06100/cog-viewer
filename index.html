@@ -41,7 +41,7 @@
       z-index: 1;
     }
 
-    /* 플로팅 컨트롤 패널 */
+    /* 플로팅 컨트롤 패널 (좌측 상단) */
     .control-panel {
       position: absolute;
       top: 14px;
@@ -265,6 +265,49 @@
       to { transform: rotate(360deg); }
     }
 
+    /* OpenLayers 기본 줌 컨트롤(+/-) 위치를 우측 상단으로 이동 및 모던 스타일링 */
+    .ol-zoom {
+      top: 14px;
+      right: 14px;
+      left: auto;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      padding: 4px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 1000;
+    }
+    .ol-zoom button {
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 16px;
+      font-weight: 800;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin: 0 !important;
+      outline: none;
+    }
+    .ol-zoom button:hover {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+    .ol-zoom button:active {
+      transform: scale(0.95);
+    }
+
     /* 모바일 레이아웃 대응 */
     @media (max-width: 480px) {
       .control-panel {
@@ -273,6 +316,11 @@
         width: calc(100vw - 20px);
         max-width: none;
         padding: 12px 14px;
+      }
+      .ol-zoom {
+        top: auto;
+        bottom: 24px;
+        right: 14px;
       }
     }
   </style>
@@ -288,7 +336,7 @@
     <div id="loader-text">지형 데이터 스트리밍 연결 중...</div>
   </div>
 
-  <!-- 접이식 컨트롤 대시보드 -->
+  <!-- 접이식 컨트롤 대시보드 (좌측 상단) -->
   <div class="control-panel" id="control-panel">
     <!-- 헤더 (클릭 시 접기/펼치기 토글) -->
     <div class="panel-header" id="panel-toggle-header" title="메뉴 접기/펼치기">
