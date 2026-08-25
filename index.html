@@ -6,7 +6,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>금정산 초정밀 음영기복도(Hillshade) 0.5m COG 뷰어</title>
+  <title>금정산 초정밀 음영기복도(Hillshade) COG 뷰어 (0.5m / 5m)</title>
   
   <!-- 1. GeoTIFF 전역 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
@@ -82,6 +82,7 @@
       color: #ffffff;
       padding: 2px 7px;
       border-radius: 10px;
+      transition: background 0.3s;
     }
 
     .header-actions {
@@ -110,7 +111,7 @@
 
     /* 패널 바디 (접기/펼치기 애니메이션) */
     .panel-body {
-      max-height: 500px;
+      max-height: 600px;
       opacity: 1;
       overflow: hidden;
       transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.3s ease;
@@ -135,29 +136,56 @@
       font-size: 11px;
       color: #64748b;
       line-height: 1.4;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .section-divider {
       height: 1px;
       background: #e2e8f0;
-      margin: 10px 0;
+      margin: 9px 0;
     }
 
-    /* 프리셋 모드 선택 버튼 */
-    .preset-label {
+    /* 해상도 스위처 그룹 */
+    .section-label {
       font-size: 11.5px;
       font-weight: 700;
       color: #334155;
       margin-bottom: 6px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
+    .res-switch-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .btn-res {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      padding: 7px 4px;
+      border-radius: 7px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .btn-res.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+    }
+
+    /* 프리셋 모드 선택 버튼 */
     .preset-group {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 5px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .btn-preset {
       border: 1px solid #cbd5e1;
@@ -342,7 +370,7 @@
     <div class="panel-header" id="panel-toggle-header" title="메뉴 접기/펼치기">
       <div class="panel-title-wrap">
         <span class="panel-title">🏔️ 금정산 음영기복도</span>
-        <span class="badge">0.5m COG</span>
+        <span class="badge" id="badge-res">0.5m COG</span>
       </div>
       <div class="header-actions">
         <button class="btn-toggle" id="btn-toggle" aria-label="메뉴 접기">▲</button>
@@ -356,10 +384,20 @@
         좌표계: UTM-52N (EPSG:32652) · 16-bit GeoTIFF
       </div>
 
+      <!-- 1. 해상도 선택 스위처 -->
+      <div class="section-label">
+        <span>🛰️ 음영기복도 해상도 선택</span>
+        <span id="res-status-tag" style="color: #0284c7; font-size: 10.5px; font-weight: 700;">0.5m 초고정밀</span>
+      </div>
+      <div class="res-switch-group">
+        <button class="btn-res active" data-res="0.5m">0.5m 초고정밀 (광역)</button>
+        <button class="btn-res" data-res="5m">5m 일반음영 (국소)</button>
+      </div>
+
       <div class="section-divider"></div>
 
-      <!-- 뷰어 모드 프리셋 -->
-      <div class="preset-label">
+      <!-- 2. 뷰어 모드 프리셋 -->
+      <div class="section-label">
         <span>🎨 시각화 모드 프리셋</span>
       </div>
       <div class="preset-group">
@@ -368,14 +406,14 @@
         <button class="btn-preset" data-mode="osm">일반지도</button>
       </div>
 
-      <!-- 음영기복도 투명도 조절 -->
+      <!-- 3. 음영기복도 투명도 조절 -->
       <div class="slider-header">
         <span>지형 음영 투명도</span>
         <span id="opacity-val" class="slider-val">100%</span>
       </div>
       <input type="range" id="opacity-slider" min="0" max="100" value="100" />
 
-      <!-- 전체 줌 리셋 버튼 -->
+      <!-- 4. 전체 줌 리셋 버튼 -->
       <button class="btn-action" id="btn-reset-view">🎯 금정산 중심부 맞춤</button>
     </div>
   </div>
@@ -385,33 +423,60 @@
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
 
-    // 2. GCS 버킷 내 0.5m COG GeoTIFF 소스 정의 (0~32765 정규화)
-    const cogUrl = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
+    // 2. GCS 버킷 내 0.5m 및 5m COG GeoTIFF 소스 정의
+    const cogUrl05 = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
+    const cogUrl5m = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_5m_cog.tif';
     
-    const cogSource = new ol.source.GeoTIFF({
+    // (1) 0.5m COG 소스
+    const cogSource05 = new ol.source.GeoTIFF({
       sources: [{
-        url: cogUrl,
+        url: cogUrl05,
         nodata: -32768.0,
         min: 0.0,
         max: 32765.0
       }]
     });
 
-    // 3. QGIS Singleband Gray 1:1 일치 셰이더 (0.0: Black ~ 0.47: Gray ~ 1.0: White)
-    const hillshadeLayer = new ol.layer.WebGLTile({
-      source: cogSource,
-      opacity: 1.0,
-      style: {
-        color: [
-          'interpolate',
-          ['linear'],
-          ['band', 1],
-          0.00, [0, 0, 0, 1],         // 깊은 그림자: 완전한 블랙
-          0.47, [145, 145, 150, 1],   // 중간 지형 사면: 내추럴 그레이
-          1.00, [255, 255, 255, 1]    // 밝은 능선/정상부: 선명한 화이트
-        ]
-      }
+    // (2) 5m COG 소스
+    const cogSource5m = new ol.source.GeoTIFF({
+      sources: [{
+        url: cogUrl5m,
+        nodata: -32768.0,
+        min: 0.0,
+        max: 32761.0
+      }]
     });
+
+    // 3. QGIS Singleband Gray 1:1 일치 셰이더 (0.0: Black ~ 0.47: Gray ~ 1.0: White)
+    const hillshadeStyle = {
+      color: [
+        'interpolate',
+        ['linear'],
+        ['band', 1],
+        0.00, [0, 0, 0, 1],         // 깊은 그림자: 완전한 블랙
+        0.47, [145, 145, 150, 1],   // 중간 지형 사면: 내추럴 그레이
+        1.00, [255, 255, 255, 1]    // 밝은 능선/정상부: 선명한 화이트
+      ]
+    };
+
+    // 0.5m WebGL 레이어 (기본 활성화)
+    const hillshade05Layer = new ol.layer.WebGLTile({
+      source: cogSource05,
+      opacity: 1.0,
+      visible: true,
+      style: hillshadeStyle
+    });
+
+    // 5m WebGL 레이어 (기본 비활성화)
+    const hillshade5mLayer = new ol.layer.WebGLTile({
+      source: cogSource5m,
+      opacity: 1.0,
+      visible: false,
+      style: hillshadeStyle
+    });
+
+    let currentRes = '0.5m';
+    let currentHillshadeLayer = hillshade05Layer;
 
     // 4. 배경 지도 레이어 정의 (초기 QGIS 지형 모드: 모두 비활성화)
     const osmLayer = new ol.layer.Tile({
@@ -427,37 +492,40 @@
       visible: false
     });
 
-    // 5. 오픈레이어스 맵 인스턴스 초기화
+    // 5. 오픈레이어스 맵 인스턴스 초기화 (cogSource05 뷰 기반)
     const map = new ol.Map({
       target: 'map',
       layers: [
         osmLayer,
         satelliteLayer,
-        hillshadeLayer
+        hillshade05Layer,
+        hillshade5mLayer
       ],
-      view: cogSource.getView()
+      view: cogSource05.getView()
     });
 
     // 6. 비동기 뷰 로드 시 디지털 초정밀 확대(maxZoom: 10) 적용
-    let initialCenter = [503714.75, 3900021.25];
-    cogSource.getView().then(viewOptions => {
+    const center05 = [503714.75, 3900021.25];
+    const center5m = [505209.71, 3905525.95];
+
+    cogSource05.getView().then(viewOptions => {
       map.setView(new ol.View({
         ...viewOptions,
-        maxZoom: 10,           // 최대 줌 10단계까지 무제한 초근접 확대 허용
+        maxZoom: 10,           // 최대 줌 10단계까지 초근접 확대 허용
         minResolution: 0.03,   // 3cm급 해상도까지 세밀한 픽셀 확대 지원
         smoothExtentConstraint: true
       }));
 
-      map.getView().setCenter(initialCenter);
+      map.getView().setCenter(center05);
       map.getView().setZoom(4);
       document.getElementById('loader').style.display = 'none';
-      console.log('✅ 초정밀 무제한 줌(MaxZoom: 10) 뷰어 활성화 완료');
+      console.log('✅ 0.5m & 5m 멀티 해상도 COG 뷰어 활성화 완료');
     }).catch(err => {
       console.warn('GeoTIFF getView 로드 안내:', err);
       document.getElementById('loader').style.display = 'none';
     });
 
-    // 7. 무한 로딩 방지 안전 타이머 (2초 후 로더 자동 숨김)
+    // 7. 무한 로딩 방지 안전 타이머
     setTimeout(() => {
       const loader = document.getElementById('loader');
       if (loader) loader.style.display = 'none';
@@ -477,22 +545,59 @@
 
     toggleHeader.addEventListener('click', toggleMenu);
 
-    // 9. 인터랙티브 이벤트 제어
+    // 9. 해상도 스위칭 (0.5m ↔ 5m) 제어
+    const resBtns = document.querySelectorAll('.btn-res');
+    const badgeRes = document.getElementById('badge-res');
+    const resStatusTag = document.getElementById('res-status-tag');
     const opacitySlider = document.getElementById('opacity-slider');
     const opacityVal = document.getElementById('opacity-val');
 
+    function switchResolution(res) {
+      currentRes = res;
+      resBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-res') === res);
+      });
+
+      const currentOpacity = parseFloat(opacitySlider.value) / 100;
+
+      if (res === '0.5m') {
+        hillshade05Layer.setVisible(true);
+        hillshade5mLayer.setVisible(false);
+        currentHillshadeLayer = hillshade05Layer;
+        badgeRes.innerText = '0.5m COG';
+        resStatusTag.innerText = '0.5m 초고정밀';
+      } else {
+        hillshade05Layer.setVisible(false);
+        hillshade5mLayer.setVisible(true);
+        currentHillshadeLayer = hillshade5mLayer;
+        badgeRes.innerText = '5m COG';
+        resStatusTag.innerText = '5m 일반음영';
+      }
+
+      currentHillshadeLayer.setOpacity(currentOpacity);
+    }
+
+    resBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const res = btn.getAttribute('data-res');
+        switchResolution(res);
+      });
+    });
+
+    // 10. 인터랙티브 이벤트 제어
     // (1) 투명도 슬라이더 연동
     opacitySlider.addEventListener('input', (e) => {
       const val = e.target.value;
       opacityVal.innerText = `${val}%`;
-      hillshadeLayer.setOpacity(val / 100);
+      currentHillshadeLayer.setOpacity(val / 100);
     });
 
     // (2) 프리셋 모드 전환 (QGIS 지형 / 위성 입체 / 일반지도)
     const presetBtns = document.querySelectorAll('.btn-preset');
     presetBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
-        e.stopPropagation(); // 메뉴 토글 방지
+        e.stopPropagation();
         presetBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const mode = btn.getAttribute('data-mode');
@@ -500,19 +605,19 @@
         if (mode === 'qgis') {
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(false);
-          hillshadeLayer.setOpacity(1.0);
+          currentHillshadeLayer.setOpacity(1.0);
           opacitySlider.value = 100;
           opacityVal.innerText = '100%';
         } else if (mode === 'satellite') {
           satelliteLayer.setVisible(true);
           osmLayer.setVisible(false);
-          hillshadeLayer.setOpacity(0.70);
+          currentHillshadeLayer.setOpacity(0.70);
           opacitySlider.value = 70;
           opacityVal.innerText = '70%';
         } else if (mode === 'osm') {
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(true);
-          hillshadeLayer.setOpacity(0.60);
+          currentHillshadeLayer.setOpacity(0.60);
           opacitySlider.value = 60;
           opacityVal.innerText = '60%';
         }
@@ -522,8 +627,13 @@
     // (3) 전체 영역 맞춤 리셋
     document.getElementById('btn-reset-view').addEventListener('click', (e) => {
       e.stopPropagation();
-      map.getView().setCenter(initialCenter);
-      map.getView().setZoom(4);
+      if (currentRes === '0.5m') {
+        map.getView().setCenter(center05);
+        map.getView().setZoom(4);
+      } else {
+        map.getView().setCenter(center5m);
+        map.getView().setZoom(6);
+      }
     });
   </script>
 </body>
