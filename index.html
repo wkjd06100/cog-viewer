@@ -555,11 +555,6 @@
       <span class="scale-label">축척</span>
       <span class="scale-value" id="scale-ratio">1:3,000</span>
     </div>
-    <div class="scale-divider"></div>
-    <div class="scale-item">
-      <span class="scale-label">해상도</span>
-      <span class="scale-value" id="scale-res">0.79 m/px</span>
-    </div>
   </div>
 
   <!-- 로딩 스피너 -->
@@ -725,9 +720,8 @@
       controls: [] // 컨트롤은 하단 맵(map5m)에만 단일 유지
     });
 
-    // 6. 실시간 축척 및 해상도 갱신 함수
+    // 6. 실시간 축척 갱신 함수
     const scaleRatioEl = document.getElementById('scale-ratio');
-    const scaleResEl = document.getElementById('scale-res');
 
     function updateScaleDisplay() {
       if (!sharedView) return;
@@ -736,7 +730,6 @@
       // 96 DPI 기준 화면 축척 계산
       const scale = Math.round(res * 96 / 0.0254);
       scaleRatioEl.innerText = `1:${scale.toLocaleString()}`;
-      scaleResEl.innerText = `${res.toFixed(2)} m/px`;
     }
 
     // 7. 뷰 옵션 사전 로드 및 1:3000 축척 바인딩
