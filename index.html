@@ -427,7 +427,7 @@
     const cogUrl05 = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
     const cogUrl5m = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_5m_cog.tif';
     
-    // (1) 0.5m COG 소스
+    // (1) 0.5m COG 소스 (Float32)
     const cogSource05 = new ol.source.GeoTIFF({
       sources: [{
         url: cogUrl05,
@@ -437,7 +437,7 @@
       }]
     });
 
-    // (2) 5m COG 소스
+    // (2) 5m COG 소스 (Float32)
     const cogSource5m = new ol.source.GeoTIFF({
       sources: [{
         url: cogUrl5m,
@@ -545,14 +545,14 @@
 
     toggleHeader.addEventListener('click', toggleMenu);
 
-    // 9. 해상도 스위칭 (0.5m ↔ 5m) 제어
+    // 9. 해상도 스위칭 (0.5m ↔ 5m) 제어 (클릭 시 자동 카메라 이동)
     const resBtns = document.querySelectorAll('.btn-res');
     const badgeRes = document.getElementById('badge-res');
     const resStatusTag = document.getElementById('res-status-tag');
     const opacitySlider = document.getElementById('opacity-slider');
     const opacityVal = document.getElementById('opacity-val');
 
-    function switchResolution(res) {
+    function switchResolution(res, autoPan = true) {
       currentRes = res;
       resBtns.forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-res') === res);
@@ -566,12 +566,18 @@
         currentHillshadeLayer = hillshade05Layer;
         badgeRes.innerText = '0.5m COG';
         resStatusTag.innerText = '0.5m 초고정밀';
+        if (autoPan) {
+          map.getView().animate({ center: center05, zoom: 4, duration: 600 });
+        }
       } else {
         hillshade05Layer.setVisible(false);
         hillshade5mLayer.setVisible(true);
         currentHillshadeLayer = hillshade5mLayer;
         badgeRes.innerText = '5m COG';
         resStatusTag.innerText = '5m 일반음영';
+        if (autoPan) {
+          map.getView().animate({ center: center5m, zoom: 6, duration: 600 });
+        }
       }
 
       currentHillshadeLayer.setOpacity(currentOpacity);
@@ -581,7 +587,7 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const res = btn.getAttribute('data-res');
-        switchResolution(res);
+        switchResolution(res, true);
       });
     });
 
@@ -628,11 +634,9 @@
     document.getElementById('btn-reset-view').addEventListener('click', (e) => {
       e.stopPropagation();
       if (currentRes === '0.5m') {
-        map.getView().setCenter(center05);
-        map.getView().setZoom(4);
+        map.getView().animate({ center: center05, zoom: 4, duration: 500 });
       } else {
-        map.getView().setCenter(center5m);
-        map.getView().setZoom(6);
+        map.getView().animate({ center: center5m, zoom: 6, duration: 500 });
       }
     });
   </script>
