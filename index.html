@@ -390,8 +390,8 @@
         <span id="res-status-tag" style="color: #0284c7; font-size: 10.5px; font-weight: 700;">0.5m 초고정밀</span>
       </div>
       <div class="res-switch-group">
-        <button class="btn-res active" data-res="0.5m">0.5m 초고정밀 (광역)</button>
-        <button class="btn-res" data-res="5m">5m 일반음영 (국소)</button>
+        <button class="btn-res active" data-res="0.5m">0.5m 초고정밀</button>
+        <button class="btn-res" data-res="5m">5m 일반음영</button>
       </div>
 
       <div class="section-divider"></div>
@@ -423,7 +423,7 @@
     proj4.defs("EPSG:32652", "+proj=utm +zone=52 +datum=WGS84 +units=m +no_defs");
     ol.proj.proj4.register(proj4);
 
-    // 2. GCS 버킷 내 0.5m 및 5m COG GeoTIFF 소스 정의
+    // 2. GCS 버킷 내 0.5m 및 5m COG GeoTIFF 소스 정의 (0.0~32765.0 16-bit Float32 규격)
     const cogUrl05 = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
     const cogUrl5m = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_5m_cog.tif';
     
@@ -443,7 +443,7 @@
         url: cogUrl5m,
         nodata: -32768.0,
         min: 0.0,
-        max: 32761.0
+        max: 32765.0
       }]
     });
 
@@ -505,8 +505,7 @@
     });
 
     // 6. 비동기 뷰 로드 시 디지털 초정밀 확대(maxZoom: 10) 적용
-    const center05 = [503714.75, 3900021.25];
-    const center5m = [505209.71, 3905525.95];
+    const centerPoint = [503714.75, 3900021.25];
 
     cogSource05.getView().then(viewOptions => {
       map.setView(new ol.View({
@@ -516,10 +515,10 @@
         smoothExtentConstraint: true
       }));
 
-      map.getView().setCenter(center05);
+      map.getView().setCenter(centerPoint);
       map.getView().setZoom(4);
       document.getElementById('loader').style.display = 'none';
-      console.log('✅ 0.5m & 5m 멀티 해상도 COG 뷰어 활성화 완료');
+      console.log('✅ 0.5m & 5m 멀티 해상도 광역 COG 뷰어 활성화 완료');
     }).catch(err => {
       console.warn('GeoTIFF getView 로드 안내:', err);
       document.getElementById('loader').style.display = 'none';
@@ -545,14 +544,14 @@
 
     toggleHeader.addEventListener('click', toggleMenu);
 
-    // 9. 해상도 스위칭 (0.5m ↔ 5m) 제어 (클릭 시 자동 카메라 이동)
+    // 9. 해상도 스위칭 (0.5m ↔ 5m) 제어 (제자리에서 실시간 비교)
     const resBtns = document.querySelectorAll('.btn-res');
     const badgeRes = document.getElementById('badge-res');
     const resStatusTag = document.getElementById('res-status-tag');
     const opacitySlider = document.getElementById('opacity-slider');
     const opacityVal = document.getElementById('opacity-val');
 
-    function switchResolution(res, autoPan = true) {
+    function switchResolution(res) {
       currentRes = res;
       resBtns.forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-res') === res);
@@ -566,18 +565,12 @@
         currentHillshadeLayer = hillshade05Layer;
         badgeRes.innerText = '0.5m COG';
         resStatusTag.innerText = '0.5m 초고정밀';
-        if (autoPan) {
-          map.getView().animate({ center: center05, zoom: 4, duration: 600 });
-        }
       } else {
         hillshade05Layer.setVisible(false);
         hillshade5mLayer.setVisible(true);
         currentHillshadeLayer = hillshade5mLayer;
         badgeRes.innerText = '5m COG';
         resStatusTag.innerText = '5m 일반음영';
-        if (autoPan) {
-          map.getView().animate({ center: center5m, zoom: 6, duration: 600 });
-        }
       }
 
       currentHillshadeLayer.setOpacity(currentOpacity);
@@ -587,7 +580,7 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const res = btn.getAttribute('data-res');
-        switchResolution(res, true);
+        switchResolution(res);
       });
     });
 
@@ -633,11 +626,8 @@
     // (3) 전체 영역 맞춤 리셋
     document.getElementById('btn-reset-view').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (currentRes === '0.5m') {
-        map.getView().animate({ center: center05, zoom: 4, duration: 500 });
-      } else {
-        map.getView().animate({ center: center5m, zoom: 6, duration: 500 });
-      }
+      map.getView().setCenter(centerPoint);
+      map.getView().setZoom(4);
     });
   </script>
 </body>
