@@ -33,13 +33,19 @@
       color: #1f2937;
       user-select: none;
     }
-    #map {
+    .map-container {
       width: 100%;
       height: 100%;
       position: absolute;
       top: 0;
       left: 0;
+    }
+    #map-5m {
       z-index: 1;
+    }
+    #map-05 {
+      z-index: 2;
+      pointer-events: none; /* 하단 맵으로 마우스/터치 이벤트 전달 */
     }
 
     /* 플로팅 컨트롤 패널 (좌측 상단) */
@@ -157,6 +163,32 @@
       align-items: center;
     }
 
+    /* 비교 방식 선택 탭 */
+    .view-mode-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .btn-vmode {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      padding: 7px 2px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .btn-vmode.active {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+    }
+
     /* 해상도 스위처 그룹 */
     .res-switch-group {
       display: grid;
@@ -177,10 +209,10 @@
       transition: all 0.2s;
     }
     .btn-res.active {
-      background: #0284c7;
+      background: #0f172a;
       color: #ffffff;
-      border-color: #0284c7;
-      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+      border-color: #0f172a;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
     }
 
     /* 배경지도 프리셋 버튼 */
@@ -339,6 +371,145 @@
       transform: scale(0.95);
     }
 
+    /* ========================================================
+       오른쪽 아래(우측 하단) 축척 & 해상도 인디케이터 위젯
+       ======================================================== */
+    .scale-widget {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #f8fafc;
+      pointer-events: none;
+      user-select: none;
+    }
+    .scale-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .scale-label {
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 11px;
+    }
+    .scale-value {
+      color: #38bdf8;
+      font-weight: 800;
+      font-feature-settings: "tnum";
+    }
+    .scale-divider {
+      width: 1px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* ========================================================
+       스와이프 분할 비교 슬라이더 오버레이
+       ======================================================== */
+    #swipe-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 500;
+      display: none;
+    }
+    #swipe-line-v {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 3px;
+      background: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8), 0 0 4px #ffffff;
+      cursor: ew-resize;
+      pointer-events: auto;
+      transform: translateX(-50%);
+    }
+    #swipe-handle-v {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2.5px solid #38bdf8;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 10px rgba(56, 189, 248, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: ew-resize;
+    }
+    #swipe-line-h {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 3px;
+      background: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8), 0 0 4px #ffffff;
+      cursor: ns-resize;
+      pointer-events: auto;
+      transform: translateY(-50%);
+      display: none;
+    }
+    #swipe-handle-h {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2.5px solid #38bdf8;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 10px rgba(56, 189, 248, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: ns-resize;
+    }
+
+    .swipe-label {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.9);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      pointer-events: none;
+      z-index: 501;
+    }
+    #label-left { bottom: 24px; left: 14px; }
+    #label-right { bottom: 24px; right: 240px; }
+    #label-top { top: 14px; left: 50%; transform: translateX(-50%); }
+    #label-bottom { bottom: 24px; left: 50%; transform: translateX(-50%); }
+
     @media (max-width: 480px) {
       .control-panel {
         top: 10px;
@@ -349,16 +520,47 @@
       }
       .ol-zoom {
         top: auto;
-        bottom: 24px;
+        bottom: 60px;
         right: 14px;
+      }
+      .scale-widget {
+        bottom: 10px;
+        right: 10px;
+        padding: 6px 10px;
+        font-size: 10.5px;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- 지도 캔버스 -->
-  <div id="map"></div>
+  <!-- 1:1 완벽 동기화 듀얼 맵 컨테이너 -->
+  <div id="map-5m" class="map-container"></div>
+  <div id="map-05" class="map-container"></div>
+
+  <!-- 스와이프 분할 비교 오버레이 -->
+  <div id="swipe-overlay">
+    <div id="swipe-line-v"><div id="swipe-handle-v">↔</div></div>
+    <div id="swipe-line-h"><div id="swipe-handle-h">↕</div></div>
+
+    <div id="label-left" class="swipe-label">👈 0.5m ALS</div>
+    <div id="label-right" class="swipe-label">5m 수치지형도 👉</div>
+    <div id="label-top" class="swipe-label" style="display:none;">👆 0.5m ALS</div>
+    <div id="label-bottom" class="swipe-label" style="display:none;">👇 5m 수치지형도</div>
+  </div>
+
+  <!-- 오른쪽 아래(우측 하단) 실시간 축척 인디케이터 위젯 -->
+  <div class="scale-widget" id="scale-widget">
+    <div class="scale-item">
+      <span class="scale-label">축척</span>
+      <span class="scale-value" id="scale-ratio">1:3,000</span>
+    </div>
+    <div class="scale-divider"></div>
+    <div class="scale-item">
+      <span class="scale-label">해상도</span>
+      <span class="scale-value" id="scale-res">0.79 m/px</span>
+    </div>
+  </div>
 
   <!-- 로딩 스피너 -->
   <div id="loader">
@@ -385,19 +587,31 @@
         좌표계: UTM-52N (EPSG:32652) · 16-bit GeoTIFF
       </div>
 
-      <!-- 1. 음영기복도 해상도 선택 (0.5m ALS / 5m 수치지형도) -->
+      <!-- 1. 비교 방식 선택 탭 -->
       <div class="section-label">
-        <span>음영기복도 선택</span>
-        <span id="res-status-tag" style="color: #0284c7; font-size: 10.5px; font-weight: 700;">0.5m ALS</span>
+        <span>비교 방식</span>
       </div>
-      <div class="res-switch-group">
-        <button class="btn-res active" data-res="0.5m">0.5m ALS</button>
-        <button class="btn-res" data-res="5m">5m 수치지형도</button>
+      <div class="view-mode-group">
+        <button class="btn-vmode active" data-vmode="single">단독 보기</button>
+        <button class="btn-vmode" data-vmode="v-split">좌우 분할</button>
+        <button class="btn-vmode" data-vmode="h-split">상하 분할</button>
+      </div>
+
+      <!-- 2. 단독 보기 시: 0.5m ALS / 5m 수치지형도 선택 -->
+      <div id="single-res-section">
+        <div class="section-label">
+          <span>음영기복도 선택</span>
+          <span id="res-status-tag" style="color: #0284c7; font-size: 10.5px; font-weight: 700;">0.5m ALS</span>
+        </div>
+        <div class="res-switch-group">
+          <button class="btn-res active" data-res="0.5m">0.5m ALS</button>
+          <button class="btn-res" data-res="5m">5m 수치지형도</button>
+        </div>
       </div>
 
       <div class="section-divider"></div>
 
-      <!-- 2. 배경지도 (배경없음 / 위성 입체 / 일반지도) -->
+      <!-- 3. 배경지도 (배경없음 / 위성 입체 / 일반지도) -->
       <div class="section-label">
         <span>배경지도</span>
       </div>
@@ -407,15 +621,15 @@
         <button class="btn-preset" data-mode="osm">일반지도</button>
       </div>
 
-      <!-- 3. 음영기복도 투명도 조절 -->
+      <!-- 4. 음영기복도 투명도 조절 -->
       <div class="slider-header">
         <span>지형 음영 투명도</span>
         <span id="opacity-val" class="slider-val">100%</span>
       </div>
       <input type="range" id="opacity-slider" min="0" max="100" value="100" />
 
-      <!-- 4. 전체 줌 리셋 버튼 -->
-      <button class="btn-action" id="btn-reset-view">🎯 금정산 중심부 맞춤</button>
+      <!-- 5. 전체 영역 맞춤 이동 버튼 -->
+      <button class="btn-action" id="btn-reset-view">🗺️ 전체 영역 이동</button>
     </div>
   </div>
 
@@ -425,8 +639,9 @@
     ol.proj.proj4.register(proj4);
 
     // 2. GCS 버킷 내 0.5m 및 5m COG GeoTIFF 소스 정의
-    const cogUrl05 = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif';
-    const cogUrl5m = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_5m_cog.tif';
+    const cacheKey = Date.now();
+    const cogUrl05 = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_cog.tif?v=' + cacheKey;
+    const cogUrl5m = 'https://storage.googleapis.com/researchins/GJS_DEM_Hillshade_202603_5m_cog.tif?v=' + cacheKey;
     
     // (1) 0.5m ALS 소스
     const cogSource05 = new ol.source.GeoTIFF({
@@ -460,15 +675,8 @@
       ]
     };
 
-    // 4. 단일 WebGLTile 레이어
-    const hillshadeLayer = new ol.layer.WebGLTile({
-      source: cogSource05,
-      opacity: 1.0,
-      visible: true,
-      style: hillshadeStyle
-    });
-
-    // 5. 배경 지도 레이어 정의
+    // 4. 레이어 정의
+    // (1) 5m 맵 레이어들 (하단 맵)
     const osmLayer = new ol.layer.Tile({
       source: new ol.source.OSM(),
       visible: false
@@ -482,38 +690,81 @@
       visible: false
     });
 
-    // 6. 오픈레이어스 맵 초기화
-    const centerPoint = [503714.75, 3900021.25];
-    let viewOptions05 = null;
-    let viewOptions5m = null;
-    let currentRes = '0.5m';
-
-    const map = new ol.Map({
-      target: 'map',
-      layers: [
-        osmLayer,
-        satelliteLayer,
-        hillshadeLayer
-      ],
-      view: cogSource05.getView()
+    const hillshade5mLayer = new ol.layer.WebGLTile({
+      source: cogSource5m,
+      opacity: 1.0,
+      visible: true,
+      style: hillshadeStyle
     });
 
-    // 7. 0.5m 및 5m 뷰 옵션 사전 로드
-    Promise.all([cogSource05.getView(), cogSource5m.getView()]).then(([v05, v5m]) => {
-      viewOptions05 = v05;
-      viewOptions5m = v5m;
+    // (2) 0.5m 맵 레이어 (상단 맵)
+    const hillshade05Layer = new ol.layer.WebGLTile({
+      source: cogSource05,
+      opacity: 1.0,
+      visible: true,
+      style: hillshadeStyle
+    });
 
-      map.setView(new ol.View({
-        ...viewOptions05,
-        maxZoom: 10,
+    // 5. 1:1 카메라 뷰 완벽 공유 듀얼 맵 인스턴스 생성
+    // 사용자 요청 초기 좌표: [X: 504861.51526077, Y: 3905556.26240620]
+    // 사용자 요청 초기 축척 1:3000 -> 해상도: 3000 * 0.0254 / 96 = 0.79375 m/px
+    const initialCenter = [504861.51526077, 3905556.26240620];
+    const initialResolution = (3000 * 0.0254) / 96; // 0.79375 m/px (1:3000 축척)
+    let sharedView = null;
+
+    const map5m = new ol.Map({
+      target: 'map-5m',
+      layers: [osmLayer, satelliteLayer, hillshade5mLayer],
+      view: cogSource5m.getView()
+    });
+
+    const map05 = new ol.Map({
+      target: 'map-05',
+      layers: [hillshade05Layer],
+      view: cogSource05.getView(),
+      controls: [] // 컨트롤은 하단 맵(map5m)에만 단일 유지
+    });
+
+    // 6. 실시간 축척 및 해상도 갱신 함수
+    const scaleRatioEl = document.getElementById('scale-ratio');
+    const scaleResEl = document.getElementById('scale-res');
+
+    function updateScaleDisplay() {
+      if (!sharedView) return;
+      const res = sharedView.getResolution();
+      if (!res) return;
+      // 96 DPI 기준 화면 축척 계산
+      const scale = Math.round(res * 96 / 0.0254);
+      scaleRatioEl.innerText = `1:${scale.toLocaleString()}`;
+      scaleResEl.innerText = `${res.toFixed(2)} m/px`;
+    }
+
+    // 7. 뷰 옵션 사전 로드 및 1:3000 축척 바인딩
+    Promise.all([cogSource05.getView(), cogSource5m.getView()]).then(([v05, v5m]) => {
+      const vOpt = { ...v05 };
+      delete vOpt.resolutions;
+
+      sharedView = new ol.View({
+        ...vOpt,
+        maxZoom: 14,
         minResolution: 0.03,
         smoothExtentConstraint: true
-      }));
+      });
 
-      map.getView().setCenter(centerPoint);
-      map.getView().setZoom(4);
+      // 두 지도가 100% 동일한 카메라 뷰를 공유!
+      map5m.setView(sharedView);
+      map05.setView(sharedView);
+
+      // 사용자 요청 초기 위치 및 1:3000 축척 적용
+      sharedView.setCenter(initialCenter);
+      sharedView.setResolution(initialResolution);
+
+      // 실시간 줌/해상도 변경 이벤트 리스너 등록
+      sharedView.on('change:resolution', updateScaleDisplay);
+      updateScaleDisplay();
+
       document.getElementById('loader').style.display = 'none';
-      console.log('✅ 0.5m ALS & 5m 수치지형도 뷰어 로드 완료');
+      console.log('✅ 1:1 동기화 듀얼 맵 로드 완료 (초기 축척 1:3000)');
     }).catch(err => {
       console.warn('GeoTIFF 초기화 안내:', err);
       document.getElementById('loader').style.display = 'none';
@@ -523,6 +774,7 @@
     setTimeout(() => {
       const loader = document.getElementById('loader');
       if (loader) loader.style.display = 'none';
+      updateScaleDisplay();
     }, 2000);
 
     // 9. 인터랙티브 메뉴 접기/펼치기 제어
@@ -539,69 +791,168 @@
 
     toggleHeader.addEventListener('click', toggleMenu);
 
-    // 10. 해상도 스위칭 (0.5m ALS ↔ 5m 수치지형도)
+    // ========================================================
+    // 10. 비교 방식 및 해상도 제어 (단독 / 좌우 분할 / 상하 분할)
+    // ========================================================
+    let currentViewMode = 'single'; // 'single', 'v-split', 'h-split'
+    let currentSingleRes = '0.5m';   // '0.5m', '5m'
+    let splitRatio = 0.5;           // 분할 위치 (0.0 ~ 1.0)
+
+    const viewModeBtns = document.querySelectorAll('.btn-vmode');
+    const singleResSection = document.getElementById('single-res-section');
     const resBtns = document.querySelectorAll('.btn-res');
     const badgeRes = document.getElementById('badge-res');
     const resStatusTag = document.getElementById('res-status-tag');
     const opacitySlider = document.getElementById('opacity-slider');
     const opacityVal = document.getElementById('opacity-val');
 
-    function switchResolution(res) {
-      currentRes = res;
-      resBtns.forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-res') === res);
-      });
+    // 스와이퍼 DOM 요소
+    const map05El = document.getElementById('map-05');
+    const swipeOverlay = document.getElementById('swipe-overlay');
+    const swipeLineV = document.getElementById('swipe-line-v');
+    const swipeLineH = document.getElementById('swipe-line-h');
+    const labelLeft = document.getElementById('label-left');
+    const labelRight = document.getElementById('label-right');
+    const labelTop = document.getElementById('label-top');
+    const labelBottom = document.getElementById('label-bottom');
 
-      const currentCenter = map.getView().getCenter() || centerPoint;
-      const currentZoom = map.getView().getZoom() || 4;
-      const currentOpacity = parseFloat(opacitySlider.value) / 100;
-
-      if (res === '0.5m') {
-        badgeRes.innerText = '0.5m ALS';
-        resStatusTag.innerText = '0.5m ALS';
-        const vOpt = viewOptions05 || {};
-        map.setView(new ol.View({
-          ...vOpt,
-          maxZoom: 10,
-          minResolution: 0.03,
-          smoothExtentConstraint: true
-        }));
-        map.getView().setCenter(currentCenter);
-        map.getView().setZoom(currentZoom);
-        hillshadeLayer.setSource(cogSource05);
-      } else {
-        badgeRes.innerText = '5m 수치지형도';
-        resStatusTag.innerText = '5m 수치지형도';
-        const vOpt = viewOptions5m || {};
-        map.setView(new ol.View({
-          ...vOpt,
-          maxZoom: 10,
-          minResolution: 0.03,
-          smoothExtentConstraint: true
-        }));
-        map.getView().setCenter(currentCenter);
-        map.getView().setZoom(currentZoom);
-        hillshadeLayer.setSource(cogSource5m);
+    // 클리핑 갱신
+    function updateClipping() {
+      if (currentViewMode === 'single') {
+        map05El.style.clipPath = '';
+      } else if (currentViewMode === 'v-split') {
+        map05El.style.clipPath = `polygon(0 0, ${splitRatio * 100}% 0, ${splitRatio * 100}% 100%, 0 100%)`;
+      } else if (currentViewMode === 'h-split') {
+        map05El.style.clipPath = `polygon(0 0, 100% 0, 100% ${splitRatio * 100}%, 0 ${splitRatio * 100}%)`;
       }
-
-      hillshadeLayer.setOpacity(currentOpacity);
-      map.render();
     }
 
-    resBtns.forEach(btn => {
+    // 모드 적용
+    function applyViewMode() {
+      const currentOpacity = parseFloat(opacitySlider.value) / 100;
+      hillshade05Layer.setOpacity(currentOpacity);
+      hillshade5mLayer.setOpacity(currentOpacity);
+
+      if (currentViewMode === 'single') {
+        swipeOverlay.style.display = 'none';
+        singleResSection.style.display = 'block';
+
+        if (currentSingleRes === '0.5m') {
+          badgeRes.innerText = '0.5m ALS';
+          resStatusTag.innerText = '0.5m ALS';
+          map05El.style.display = 'block';
+          hillshade05Layer.setVisible(true);
+          hillshade5mLayer.setVisible(false);
+        } else {
+          badgeRes.innerText = '5m 수치지형도';
+          resStatusTag.innerText = '5m 수치지형도';
+          map05El.style.display = 'none';
+          hillshade5mLayer.setVisible(true);
+        }
+      } else {
+        // 분할 비교 모드
+        swipeOverlay.style.display = 'block';
+        singleResSection.style.display = 'none';
+        map05El.style.display = 'block';
+        hillshade05Layer.setVisible(true);
+        hillshade5mLayer.setVisible(true);
+
+        if (currentViewMode === 'v-split') {
+          badgeRes.innerText = '좌우 비교';
+          swipeLineV.style.display = 'block';
+          swipeLineH.style.display = 'none';
+          labelLeft.style.display = 'block';
+          labelRight.style.display = 'block';
+          labelTop.style.display = 'none';
+          labelBottom.style.display = 'none';
+          swipeLineV.style.left = `${splitRatio * 100}%`;
+        } else if (currentViewMode === 'h-split') {
+          badgeRes.innerText = '상하 비교';
+          swipeLineV.style.display = 'none';
+          swipeLineH.style.display = 'block';
+          labelLeft.style.display = 'none';
+          labelRight.style.display = 'none';
+          labelTop.style.display = 'block';
+          labelBottom.style.display = 'none';
+          swipeLineH.style.top = `${splitRatio * 100}%`;
+        }
+      }
+
+      updateClipping();
+    }
+
+    // (1) 비교 방식 버튼 클릭 이벤트
+    viewModeBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const res = btn.getAttribute('data-res');
-        switchResolution(res);
+        viewModeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentViewMode = btn.getAttribute('data-vmode');
+        applyViewMode();
       });
     });
 
-    // 11. 인터랙티브 이벤트 제어
+    // (2) 단독 뷰 해상도 선택 이벤트
+    resBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSingleRes = btn.getAttribute('data-res');
+        applyViewMode();
+      });
+    });
+
+    // ========================================================
+    // 11. 스와이프 드래그 이벤트 (마우스 및 터치 제어)
+    // ========================================================
+    let isDragging = false;
+
+    function onPointerDown(e) {
+      isDragging = true;
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      if (currentViewMode === 'v-split') {
+        splitRatio = Math.max(0.02, Math.min(0.98, clientX / width));
+        swipeLineV.style.left = `${splitRatio * 100}%`;
+      } else if (currentViewMode === 'h-split') {
+        splitRatio = Math.max(0.02, Math.min(0.98, clientY / height));
+        swipeLineH.style.top = `${splitRatio * 100}%`;
+      }
+
+      updateClipping();
+    }
+
+    function onPointerUp() {
+      isDragging = false;
+    }
+
+    swipeLineV.addEventListener('mousedown', onPointerDown);
+    swipeLineH.addEventListener('mousedown', onPointerDown);
+    swipeLineV.addEventListener('touchstart', onPointerDown, { passive: false });
+    swipeLineH.addEventListener('touchstart', onPointerDown, { passive: false });
+
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('touchmove', onPointerMove, { passive: false });
+    window.addEventListener('mouseup', onPointerUp);
+    window.addEventListener('touchend', onPointerUp);
+
+    // 12. 인터랙티브 이벤트 제어
     // (1) 투명도 슬라이더 연동
     opacitySlider.addEventListener('input', (e) => {
       const val = e.target.value;
       opacityVal.innerText = `${val}%`;
-      hillshadeLayer.setOpacity(val / 100);
+      const op = val / 100;
+      hillshade05Layer.setOpacity(op);
+      hillshade5mLayer.setOpacity(op);
     });
 
     // (2) 배경지도 프리셋 전환 (배경없음 / 위성 입체 / 일반지도)
@@ -616,30 +967,39 @@
         if (mode === 'none') {
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(false);
-          hillshadeLayer.setOpacity(1.0);
           opacitySlider.value = 100;
           opacityVal.innerText = '100%';
+          hillshade05Layer.setOpacity(1.0);
+          hillshade5mLayer.setOpacity(1.0);
         } else if (mode === 'satellite') {
           satelliteLayer.setVisible(true);
           osmLayer.setVisible(false);
-          hillshadeLayer.setOpacity(0.70);
           opacitySlider.value = 70;
           opacityVal.innerText = '70%';
+          hillshade05Layer.setOpacity(0.70);
+          hillshade5mLayer.setOpacity(0.70);
         } else if (mode === 'osm') {
           satelliteLayer.setVisible(false);
           osmLayer.setVisible(true);
-          hillshadeLayer.setOpacity(0.60);
           opacitySlider.value = 60;
           opacityVal.innerText = '60%';
+          hillshade05Layer.setOpacity(0.60);
+          hillshade5mLayer.setOpacity(0.60);
         }
       });
     });
 
-    // (3) 전체 영역 맞춤 리셋
+    // (3) 전체 래스터 영역 맞춤 이동
+    const fullRasterExtent = [497720.0, 3886900.0, 509110.0, 3911865.0];
     document.getElementById('btn-reset-view').addEventListener('click', (e) => {
       e.stopPropagation();
-      map.getView().setCenter(centerPoint);
-      map.getView().setZoom(4);
+      if (sharedView) {
+        sharedView.fit(fullRasterExtent, {
+          size: map5m.getSize(),
+          padding: [50, 50, 50, 50],
+          duration: 400
+        });
+      }
     });
   </script>
 </body>
